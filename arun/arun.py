@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import traceback
 import signal
 import logging
@@ -41,6 +42,7 @@ async def _arun_init(task):
     except Exception as e:
         _logger.error(f'init: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
+        os._exit(123)
 
 
 def append_init(*args):
