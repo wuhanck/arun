@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="arun",
-    version="1.0.0",
+    version="1.0.1",
     author="wuhanck",
     author_email="wuhanck@hotmail.com",
     description="asyncio layer to run",
