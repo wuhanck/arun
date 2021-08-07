@@ -13,6 +13,7 @@ _tasks = []
 _init_tasks = []
 _cleanup_tasks = []
 _main_loop = None
+_init_fail_exit = True
 
 
 _logger = None
@@ -24,8 +25,10 @@ async def _arun_task(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
+        _logger.warning(f'task: {task} exception logging begin')
         _logger.warning(f'task: {task} exception: {repr(e)}')
         _logger.warning(f'trace {traceback.format_exc()}')
+        _logger.warning(f'task: {task} exception longging end')
 
 
 def append_task(*args):
@@ -40,9 +43,12 @@ async def _arun_init(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
+        _logger.error(f'init: {task} exception logging begin')
         _logger.error(f'init: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
-        os._exit(123)
+        _logger.error(f'init: {task} exception logging end')
+        if _init_fail_exit:
+            os._exit(123)
 
 
 def append_init(*args):
@@ -57,8 +63,10 @@ async def _arun_cleanup(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
+        _logger.error(f'cleanup: {task} exception logging begin')
         _logger.error(f'cleanup: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
+        _logger.error(f'cleanup: {task} exception logging end')
 
 
 def append_cleanup(*args):
@@ -200,14 +208,19 @@ def post_exit():
     return post_in_main(_shutdown(signal.SIGTERM))
 
 
-def run(loglevel=logging.DEBUG, forever=False):
+def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
     global _main_loop
     global _logger
+    global _init_fail_exit
+
     assert(_main_loop is None and _logger is None)
+
+    _init_fail_exit = init_fail_exit
     _logger = logging.getLogger(__name__)
     _main_loop = asyncio.get_event_loop()
     logging.basicConfig(level=loglevel, format='%(asctime)s %(message)s')
     loop = _main_loop
+
     # run init
     _logger.info(f'Running init tasks')
     loop.run_until_complete(_init_all())
