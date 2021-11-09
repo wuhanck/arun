@@ -25,10 +25,11 @@ async def _arun_task(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
+        _logger.warning(f'\n\n')
         _logger.warning(f'task: {task} exception logging begin')
         _logger.warning(f'task: {task} exception: {repr(e)}')
         _logger.warning(f'trace {traceback.format_exc()}')
-        _logger.warning(f'task: {task} exception longging end')
+        _logger.warning(f'task: {task} exception longging end\n\n')
 
 
 def append_task(*args):
@@ -43,10 +44,11 @@ async def _arun_init(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
+        _logger.warning(f'\n\n')
         _logger.error(f'init: {task} exception logging begin')
         _logger.error(f'init: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
-        _logger.error(f'init: {task} exception logging end')
+        _logger.error(f'init: {task} exception logging end\n\n')
         if _init_fail_exit:
             os._exit(123)
 
@@ -63,10 +65,11 @@ async def _arun_cleanup(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
+        _logger.warning(f'\n\n')
         _logger.error(f'cleanup: {task} exception logging begin')
         _logger.error(f'cleanup: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
-        _logger.error(f'cleanup: {task} exception logging end')
+        _logger.error(f'cleanup: {task} exception logging end\n\n')
 
 
 def append_cleanup(*args):
@@ -75,7 +78,7 @@ def append_cleanup(*args):
     _cleanup_tasks.extend([_arun_cleanup(task) for task in args])
 
 
-def new_future():
+def future():
     loop = asyncio.get_running_loop()
     assert(loop == _main_loop)
     return loop.create_future()
@@ -147,9 +150,9 @@ async def timeout(t):
     except asyncio.CancelledError as e:
         async with c_lock:
             if c_task is None:
-                raise asyncio.TimeoutError
+                raise asyncio.TimeoutError from None
             else:
-                raise e
+                raise
     finally:
         async with c_lock:
             if c_task is not None:
@@ -158,7 +161,7 @@ async def timeout(t):
 
 
 async def _wait_forever():
-    await new_future()
+    await future()
 
 
 async def _cleanup_all():
@@ -197,8 +200,8 @@ async def try_until_done(ttl, gap, tfunc, *args, **kwargs):
             try:
                 ret = await tfunc(*args, **kwargs)
                 break
-            except asyncio.CancelledError as e:
-                raise e
+            except asyncio.CancelledError:
+                raise
             except Exception:
                 await sleep(gap)
     return ret
@@ -287,4 +290,4 @@ if __name__ == '__main__':
     append_task(_test(3), _test(1), _test(2), _test_except(5))
     append_cleanup(_clean_test(1), _clean_test(2), _clean_test(3))
     append_init(_init_test(1), _init_test(2), _init_test(3))
-    run(forever=True)
+    run(forever=True, init_fail_exit=False)
