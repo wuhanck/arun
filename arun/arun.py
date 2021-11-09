@@ -147,7 +147,7 @@ async def timeout(t):
 
     try:
         yield
-    except asyncio.CancelledError as e:
+    except asyncio.CancelledError:
         async with c_lock:
             if c_task is None:
                 raise asyncio.TimeoutError from None
