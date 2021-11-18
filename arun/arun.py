@@ -211,6 +211,12 @@ def post_exit():
     return post_in_main(_shutdown(signal.SIGTERM))
 
 
+def loop():
+    global _main_loop
+    assert(_main_loop is not None)
+    return _main_loop
+
+
 def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
     global _main_loop
     global _logger
