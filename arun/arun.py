@@ -26,10 +26,10 @@ async def _arun_task(task):
         pass
     except Exception as e:
         _logger.warning('\n\n')
-        _logger.warning(f'task: {task} exception logging begin')
+        _logger.warning(f'task: {task} exception begin')
         _logger.warning(f'task: {task} exception: {repr(e)}')
         _logger.warning(f'trace {traceback.format_exc()}')
-        _logger.warning(f'task: {task} exception longging end\n\n')
+        _logger.warning(f'task: {task} exception end\n\n')
 
 
 def append_task(*args):
@@ -45,10 +45,10 @@ async def _arun_init(task):
         pass
     except Exception as e:
         _logger.warning('\n\n')
-        _logger.error(f'init: {task} exception logging begin')
+        _logger.error(f'init: {task} exception begin')
         _logger.error(f'init: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
-        _logger.error(f'init: {task} exception logging end\n\n')
+        _logger.error(f'init: {task} exception end\n\n')
         if _init_fail_exit:
             os._exit(123)
 
@@ -66,10 +66,10 @@ async def _arun_cleanup(task):
         pass
     except Exception as e:
         _logger.warning('\n\n')
-        _logger.error(f'cleanup: {task} exception logging begin')
+        _logger.error(f'cleanup: {task} exception begin')
         _logger.error(f'cleanup: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
-        _logger.error(f'cleanup: {task} exception logging end\n\n')
+        _logger.error(f'cleanup: {task} exception end\n\n')
 
 
 def append_cleanup(*args):
