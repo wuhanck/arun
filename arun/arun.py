@@ -16,7 +16,7 @@ _main_loop = None
 _init_fail_exit = True
 
 
-_logger = None
+_logger = logging.getLogger(__name__)
 
 
 async def _arun_task(task):
@@ -25,7 +25,7 @@ async def _arun_task(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        _logger.warning(f'\n\n')
+        _logger.warning('\n\n')
         _logger.warning(f'task: {task} exception logging begin')
         _logger.warning(f'task: {task} exception: {repr(e)}')
         _logger.warning(f'trace {traceback.format_exc()}')
@@ -44,7 +44,7 @@ async def _arun_init(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        _logger.warning(f'\n\n')
+        _logger.warning('\n\n')
         _logger.error(f'init: {task} exception logging begin')
         _logger.error(f'init: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
@@ -65,7 +65,7 @@ async def _arun_cleanup(task):
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        _logger.warning(f'\n\n')
+        _logger.warning('\n\n')
         _logger.error(f'cleanup: {task} exception logging begin')
         _logger.error(f'cleanup: {task} exception: {repr(e)}')
         _logger.error(f'trace {traceback.format_exc()}')
@@ -92,6 +92,7 @@ def post_in_main(task):
     except Exception:
         pass
     assert(loop != _main_loop)
+    assert(_main_loop is not None)
     return asyncio.run_coroutine_threadsafe(task, _main_loop)
 
 
@@ -118,7 +119,8 @@ def post_in_shell(cmd, err=None):
     assert(loop == _main_loop)
     if err is not None:
         err = asyncio.subprocess.PIPE
-    return asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=err)
+    return asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE,
+                                           stderr=err)
 
 
 def sleep(t):
@@ -219,39 +221,39 @@ def loop():
 
 def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
     global _main_loop
-    global _logger
     global _init_fail_exit
 
-    assert(_main_loop is None and _logger is None)
+    assert(_main_loop is None)
 
     _init_fail_exit = init_fail_exit
-    _logger = logging.getLogger(__name__)
     _main_loop = asyncio.get_event_loop()
     logging.basicConfig(level=loglevel, format='%(asctime)s %(message)s')
     loop = _main_loop
 
     # run init
-    _logger.info(f'Running init tasks')
+    _logger.info('Running init tasks')
     loop.run_until_complete(_init_all())
     try:  # run task with signal-handle
-        _logger.info(f'Install signal-handlers')
-        signals = (signal.SIGHUP, signal.SIGTERM, signal.SIGINT, signal.SIGUSR1)
+        _logger.info('Install signal-handlers')
+        signals = (signal.SIGHUP, signal.SIGTERM,
+                   signal.SIGINT, signal.SIGUSR1)
         try:
             for s in signals:
-                loop.add_signal_handler(s, lambda s=s: post_in_task(_shutdown(s)))
+                loop.add_signal_handler(s,
+                                        lambda s=s: post_in_task(_shutdown(s)))
         except Exception:
             pass
-        _logger.info(f'Runing normal tasks')
+        _logger.info('Runing normal tasks')
         if forever:
             append_task(_wait_forever())
         loop.run_until_complete(asyncio.gather(*_tasks))
-        _logger.info(f'Remove signal-handlers')
+        _logger.info('Remove signal-handlers')
         for s in signals:
             loop.remove_signal_handler(s)
-        _logger.info(f'Wait for cancelled tasks')
+        _logger.info('Wait for cancelled tasks')
         loop.run_until_complete(_wait_for_cancelled())
     finally:  # cleanup
-        _logger.info(f'Running cleanup tasks')
+        _logger.info('Running cleanup tasks')
         loop.run_until_complete(_cleanup_all())
         loop.close()
         _logger.info('Successfully shutdown')
