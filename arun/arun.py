@@ -213,6 +213,10 @@ def post_exit():
     return post_in_main(_shutdown(signal.SIGTERM))
 
 
+async def exit():
+    await _shutdown(signal.SIGTERM)
+
+
 def loop():
     global _main_loop
     assert(_main_loop is not None)
