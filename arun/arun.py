@@ -114,13 +114,13 @@ def post_in_task(task):
     return asyncio.create_task(_arun_task(task))
 
 
-def post_in_shell(cmd, err=None):
+def post_in_shell(cmd, hook_in=False, hook_out=False, hook_err=False):
     loop = asyncio.get_running_loop()
     assert(loop == _main_loop)
-    if err is not None:
-        err = asyncio.subprocess.PIPE
-    return asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE,
-                                           stderr=err)
+    hook_in = asyncio.subprocess.PIPE if hook_in else None
+    hook_out = asyncio.subprocess.PIPE if hook_out else None
+    hook_err = asyncio.subprocess.PIPE if hook_err else None
+    return asyncio.create_subprocess_shell(cmd, stdin=hook_in, stdout=hook_out, stderr=hook_err)
 
 
 def sleep(t):
