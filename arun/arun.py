@@ -169,11 +169,13 @@ async def _wait_forever():
 async def _cleanup_all():
     for task in reversed(_cleanup_tasks):
         await task
+    _cleanup_tasks.clear()
 
 
 async def _init_all():
     for task in _init_tasks:
         await task
+    _init_tasks.clear()
 
 
 _cancelled_tasks = []
@@ -194,6 +196,7 @@ async def _wait_for_cancelled():
             await task
         except asyncio.CancelledError:
             pass
+    _cancelled_tasks.clear()
 
 
 async def try_until_done(ttl, gap, tfunc, *args, **kwargs):
@@ -218,7 +221,6 @@ async def exit():
 
 
 def loop():
-    global _main_loop
     assert(_main_loop is not None)
     return _main_loop
 
@@ -251,6 +253,7 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
         if forever:
             append_task(_wait_forever())
         loop.run_until_complete(asyncio.gather(*_tasks))
+        _tasks.clear()
         _logger.info('Remove signal-handlers')
         for s in signals:
             loop.remove_signal_handler(s)
@@ -296,6 +299,7 @@ if __name__ == '__main__':
     async def _test_except(t):
         await sleep(t)
         post_in_task(_test_post_task())
+        print(f'loop: {loop()}')
         print(f'time out {t}')
         raise NameError('test_except')
 
