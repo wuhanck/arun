@@ -232,14 +232,21 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
     assert(_main_loop is None)
 
     _init_fail_exit = init_fail_exit
-    _main_loop = asyncio.get_event_loop()
+    try:
+        _main_loop = asyncio.get_running_loop()
+    except Exception:
+        pass
+    assert _main_loop is None, 'arun cannot run in asyncio coro/callback'
+    _main_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(_main_loop)
+
     logging.basicConfig(level=loglevel, format='%(asctime)s %(message)s')
     loop = _main_loop
 
     # run init
     _logger.info('Running init tasks')
     loop.run_until_complete(_init_all())
-    try:  # run task with signal-handle
+    try:  # run task with signal-handlers
         _logger.info('Install signal-handlers')
         signals = (signal.SIGHUP, signal.SIGTERM,
                    signal.SIGINT, signal.SIGUSR1)
