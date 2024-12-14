@@ -7,12 +7,14 @@ import asyncio
 import functools
 from types import CoroutineType
 from contextlib import asynccontextmanager
+import concurrent.futures
 
 
 _tasks = []
 _init_tasks = []
 _cleanup_tasks = []
 _main_loop = None
+_thread_pool = None
 _init_fail_exit = True
 
 
@@ -104,7 +106,7 @@ def post_in_thread(thread_proc, *args, **kwargs):
     loop = asyncio.get_running_loop()
     assert(loop == _main_loop)
     p_proc = functools.partial(thread_proc, *args, **kwargs)
-    return loop.run_in_executor(None, p_proc)
+    return loop.run_in_executor(_thread_pool, p_proc)
 
 
 def post_in_task(task):
@@ -225,8 +227,8 @@ def loop():
     return _main_loop
 
 
-def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
-    global _main_loop
+def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=None):
+    global _main_loop, thread_pool
     global _init_fail_exit
 
     assert(_main_loop is None)
@@ -239,6 +241,8 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
     assert _main_loop is None, 'arun cannot run in asyncio coro/callback'
     _main_loop = asyncio.new_event_loop()
     asyncio.set_event_loop(_main_loop)
+
+    _thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
 
     logging.basicConfig(level=loglevel, format='%(asctime)s %(message)s')
     loop = _main_loop
@@ -269,6 +273,7 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True):
     finally:  # cleanup
         _logger.info('Running cleanup tasks')
         loop.run_until_complete(_cleanup_all())
+        _thread_pool.shutdown()
         loop.close()
         _logger.info('Successfully shutdown')
 
