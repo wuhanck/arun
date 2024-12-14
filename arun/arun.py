@@ -35,8 +35,9 @@ async def _arun_task(task):
 
 
 def append_task(*args):
+    assert _main_loop is None, 'append_task should run before arun.run'
     for task in args:
-        assert(type(task) is CoroutineType)
+        assert type(task) is CoroutineType
     _tasks.extend([_arun_task(task) for task in args])
 
 
@@ -56,8 +57,9 @@ async def _arun_init(task):
 
 
 def append_init(*args):
+    assert _main_loop is None, 'append_init should run before arun.run'
     for task in args:
-        assert(type(task) is CoroutineType)
+        assert type(task) is CoroutineType
     _init_tasks.extend([_arun_init(task) for task in args])
 
 
@@ -75,26 +77,27 @@ async def _arun_cleanup(task):
 
 
 def append_cleanup(*args):
+    assert _main_loop is None, 'append_cleanup should run before arun.run'
     for task in args:
-        assert(type(task) is CoroutineType)
+        assert type(task) is CoroutineType
     _cleanup_tasks.extend([_arun_cleanup(task) for task in args])
 
 
 def future():
     loop = asyncio.get_running_loop()
-    assert(loop == _main_loop)
+    assert loop == _main_loop
     return loop.create_future()
 
 
 def post_in_main(task):
-    assert(type(task) is CoroutineType)
+    assert type(task) is CoroutineType
     loop = None
     try:
         loop = asyncio.get_running_loop()
     except Exception:
         pass
-    assert(loop != _main_loop)
-    assert(_main_loop is not None)
+    assert loop != _main_loop
+    assert _main_loop is not None
     return asyncio.run_coroutine_threadsafe(task, _main_loop)
 
 
@@ -104,21 +107,21 @@ def exec_in_main(task):
 
 def post_in_thread(thread_proc, *args, **kwargs):
     loop = asyncio.get_running_loop()
-    assert(loop == _main_loop)
+    assert loop == _main_loop
     p_proc = functools.partial(thread_proc, *args, **kwargs)
     return loop.run_in_executor(_thread_pool, p_proc)
 
 
 def post_in_task(task):
-    assert(type(task) is CoroutineType)
+    assert type(task) is CoroutineType
     loop = asyncio.get_running_loop()
-    assert(loop == _main_loop)
+    assert loop == _main_loop
     return asyncio.create_task(_arun_task(task))
 
 
 def post_in_shell(cmd, hook_in=False, hook_out=False, hook_err=False):
     loop = asyncio.get_running_loop()
-    assert(loop == _main_loop)
+    assert loop == _main_loop
     hook_in = asyncio.subprocess.PIPE if hook_in else None
     hook_out = asyncio.subprocess.PIPE if hook_out else None
     hook_err = asyncio.subprocess.PIPE if hook_err else None
@@ -127,14 +130,14 @@ def post_in_shell(cmd, hook_in=False, hook_out=False, hook_err=False):
 
 def sleep(t):
     loop = asyncio.get_running_loop()
-    assert(loop == _main_loop)
+    assert loop == _main_loop
     return asyncio.sleep(t)
 
 
 @asynccontextmanager
 async def timeout(t):
     loop = asyncio.get_running_loop()
-    assert(loop == _main_loop)
+    assert loop == _main_loop
     c_task = asyncio.current_task()
     c_lock = asyncio.Lock()
 
@@ -223,15 +226,18 @@ async def exit():
 
 
 def loop():
-    assert(_main_loop is not None)
+    assert _main_loop is not None
     return _main_loop
 
 
 def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=None):
+    if forever:
+        append_task(_wait_forever())
+
     global _main_loop, thread_pool
     global _init_fail_exit
 
-    assert(_main_loop is None)
+    assert _main_loop is None
 
     _init_fail_exit = init_fail_exit
     try:
@@ -261,8 +267,6 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=
         except Exception:
             pass
         _logger.info('Runing normal tasks')
-        if forever:
-            append_task(_wait_forever())
         loop.run_until_complete(asyncio.gather(*_tasks))
         _tasks.clear()
         _logger.info('Remove signal-handlers')
@@ -276,6 +280,8 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=
         _thread_pool.shutdown()
         loop.close()
         _logger.info('Successfully shutdown')
+        _main_loop = None
+        _thread_pool = None
 
 
 if __name__ == '__main__':
