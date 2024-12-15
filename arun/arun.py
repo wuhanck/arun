@@ -35,10 +35,13 @@ async def _arun_task(task):
 
 
 def append_task(*args):
-    assert _main_loop is None, 'append_task should run before arun.run'
     for task in args:
         assert type(task) is CoroutineType
-    _tasks.extend([_arun_task(task) for task in args])
+    if _main_loop is None:
+        _tasks.extend([_arun_task(task) for task in args])
+    else:
+        _logger.info('append_task as free task')
+        [post_in_task(task) for task in args]
 
 
 async def _arun_init(task):
@@ -280,7 +283,6 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=
         _thread_pool.shutdown()
         loop.close()
         _logger.info('Successfully shutdown')
-        _main_loop = None
         _thread_pool = None
 
 
@@ -316,6 +318,8 @@ if __name__ == '__main__':
 
     async def _test_except(t):
         await sleep(t)
+        print('test-except')
+        append_task(_test_post_task())
         post_in_task(_test_post_task())
         print(f'loop: {loop()}')
         print(f'time out {t}')
