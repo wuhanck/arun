@@ -237,7 +237,7 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=
     if forever:
         append_task(_wait_forever())
 
-    global _main_loop, thread_pool
+    global _main_loop, _thread_pool
     global _init_fail_exit
 
     assert _main_loop is None
