@@ -281,9 +281,11 @@ def run(loglevel=logging.DEBUG, forever=False, init_fail_exit=True, max_workers=
         _logger.info('Running cleanup tasks')
         loop.run_until_complete(_cleanup_all())
         _thread_pool.shutdown()
-        loop.close()
-        _logger.info('Successfully shutdown')
         _thread_pool = None
+        loop.close()
+        _main_loop = None
+        _init_fail_exit = True
+        _logger.info('Successfully shutdown')
 
 
 if __name__ == '__main__':
